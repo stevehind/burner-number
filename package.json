@@ -1,0 +1,28 @@
+{
+  "name": "burner-number",
+  "version": "1.0.0",
+  "description": "An app to send and receive SMS.",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js",
+    "server": "nodemon server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/stevehind/burner-number.git"
+  },
+  "author": "@stevehind",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/stevehind/burner-number/issues"
+  },
+  "homepage": "https://github.com/stevehind/burner-number#readme",
+  "dependencies": {
+    "express": "^4.17.1",
+    "mongoose": "^5.9.12"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.3"
+  }
+}
