@@ -9,6 +9,7 @@ const crypto = require('crypto');
 const router = express.Router();
 
 const admin_keys = require('../../config/keys').adminAPIkey;
+const createSession = require('../../functions/sessions').createSession
 
 const validateEmail = require('../../functions/validateEmail');
 
@@ -25,11 +26,16 @@ type UserType = {
     display_name: string
 };
 
-type UserPayload = {
+type RegisterPayload = {
     name: string,
     email: string,
     password: string,
     password2: string
+}
+
+type LoginPayload = {
+    email: string,
+    password: string
 }
 
 type DeleteUserPayload = {
@@ -37,13 +43,12 @@ type DeleteUserPayload = {
 }
 
 // @route POST /api/users/register
-// @desc Register a user
+// @desc Register a user. Return a session token.
 // @access public
 router.post("/register", function (req, res) {
     
     // parse the request
-    const body: UserPayload = req.body;
-    console.log("Request body: %o", body);
+    const body: RegisterPayload = req.body;
 
     // check email is an email, return an error if not
     let valid_email: boolean = validateEmail(body.email).isValid;
@@ -63,7 +68,8 @@ router.post("/register", function (req, res) {
                     display_name: body.name,
                     email: body.email,
                     password: body.password
-                })
+                });
+
                 // hash password, then save in DB
                 bcrypt.genSalt(10, (err, salt) => {
                     bcrypt.hash(newUser.password, salt, (err, hash) => {
@@ -72,38 +78,26 @@ router.post("/register", function (req, res) {
                         newUser
                             .save()
                             .then((user) => {
-                                // TODO: Create a session, return the id in the authorization header.
-                                console.log("New user is: %o", user);
-                                res.status(200).json(user)
+                                // create a session and return its id
+                                let session = createSession(user._id)
+                                let auth_header = { Authentication: session };
+
+                                return res.status(200).set(auth_header).json(user);                             
                             })
                             .catch(err => console.log(err));
                     })
                 })
-
             }
         });
-
-    // if it is:
-    // // fail, point to login
-
-    // if it isn't:
-    // hash the password
-    // store pw in db
-    // create a session
-    // return the session id
 });
 
 // @route POST /api/users/delete
 // @desc Delete a user. Requires admin API keys in request header.
 // @access private
-
 router.post("/delete", function (req, res) {
 
     const body: DeleteUserPayload = req.body;
     const auth_header: string = req.headers.authentication;
-
-    console.log("body was: %o", body);
-    console.log("auth header was: %o", auth_header);
 
     let validAdminKeys: boolean = (auth_header === admin_keys);
 
@@ -119,9 +113,44 @@ router.post("/delete", function (req, res) {
         })   
     } else {
         return res.status(403).json({ message: "Invalid API keys." })
-    }
+    }    
+});
 
-    
+// @route POST /api/users/login
+// @desc Log in a user. Return a session token.
+// @access private
+router.post("/login", function (req, res) {
+
+    const body: LoginPayload = req.body;
+    console.log("body is: %o", body);
+
+    // TODO validate the payload
+
+    // is there a user with this email?
+    // find email in Users DB
+    User.findOne({ email: body.email })
+    .then(user => {
+        if (!user) {
+            res.status(400).json({ error: 'No user with this email exists. Please register or try again.' });
+        } 
+
+        console.log("User: %o", user);
+        // check if the passwords match
+        bcrypt.compare(body.password, user.password)
+        .then(isMatch => {
+            if (isMatch) {
+                console.log('isMatch: %o', isMatch);
+                // create a session and return its id
+                let session = createSession(user._id)
+                console.log('session: %o', session);
+                let auth_header = { Authentication: session };
+
+                return res.status(200).set(auth_header).json(user);  
+            } else {
+                return res.status(400).json({ error: 'Incorrect password. Try again.' });
+            }
+        })    
+    });
 });
 
 module.exports = router;
