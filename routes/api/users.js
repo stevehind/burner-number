@@ -79,10 +79,14 @@ router.post("/register", function (req, res) {
                             .save()
                             .then((user) => {
                                 // create a session and return its id
-                                let session = createSession(user._id)
-                                let auth_header = { Authentication: session };
-
-                                return res.status(200).set(auth_header).json(user);                             
+                                return createSession(user._id)
+                                .then(session => {
+                                    let auth_header = { Authentication: session };
+                                    return res.status(200).set(auth_header).json(user);  
+                                })
+                                .catch(err => {
+                                    return res.status(400).json({ error: 'Session creation failed.' })
+                                });
                             })
                             .catch(err => console.log(err));
                     })
@@ -141,11 +145,14 @@ router.post("/login", function (req, res) {
             if (isMatch) {
                 console.log('isMatch: %o', isMatch);
                 // create a session and return its id
-                let session = createSession(user._id)
-                console.log('session: %o', session);
-                let auth_header = { Authentication: session };
-
-                return res.status(200).set(auth_header).json(user);  
+                return createSession(user._id)
+                .then(session => {
+                    let auth_header = { Authentication: session };
+                    return res.status(200).set(auth_header).json(user);  
+                })
+                .catch(err => {
+                    return res.status(400).json({ error: 'Session creation failed.' })
+                });
             } else {
                 return res.status(400).json({ error: 'Incorrect password. Try again.' });
             }
