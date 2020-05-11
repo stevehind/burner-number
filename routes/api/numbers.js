@@ -16,6 +16,7 @@ const client = require("twilio")(keys.twilioAccountSid, keys.twilioAuthToken);
 
 // Load numberAccount model
 const NumberAccount = require("../../models/NumberAccount");
+const SMSNumber = require("../../models/SMSNumber")
 
 // Define types
 type accountSidsArray = Array<string>;
@@ -29,12 +30,10 @@ type accountDeleteResult = {
 };
 type accountDeleteResultArray = Array<?accountDeleteResult>;
 type buyNumberPayload = {
-    area_code?: string,
     email: string,
     sid: string
 }
 type numberSearchPayload = {
-    areaCode?: string,
     smsEnabled: boolean
 }
 
@@ -63,7 +62,7 @@ router.post("/create-account", (req, res) => {
                 const newNumberAccount = new NumberAccount({
                     user_id: validationResponse.user_id,
                     number_account_sid: account.sid
-                })
+                });
     
                 newNumberAccount.save()
                 .then(numberAccount => {
@@ -91,32 +90,18 @@ router.post("/buy", (req, res) => {
     const body: buyNumberPayload = req.body;
 
     // Validate the session token sent.
-
     return validateSession(headers.authentication)
     .then( validationResponse => {
-        console.log(validationResponse);
 
         if (!validationResponse.isValid) {
             return res.status(403).json({ message: 'Invalid session token. Please sign in.' });
         } else {
+            // TODO: Consider adding back the ability to specify the area code of the number.
             let search_payload: numberSearchPayload = {
                 smsEnabled: true,
-                areaCode: body.area_code
             }
 
-            // If no area code is provided, search without specifying an area codes
-            if (search_payload.areaCode.length === 0) {
-                console.log("No area code provided, will choose at random.");
-
-                let search_payload = {
-                    smsEnabled: true
-                };
-            // If an area code _is_ provided, it needs to be three digits
-            } else if (search_payload.areaCode.length != 3 || isNaN(area_code)) {
-                    return res.status(400).json({ message: "Provide a three digit area code."});
-            }
-
-            return client.availablePhoneNumbers('US').local.list(search_payload)
+            client.availablePhoneNumbers('US').local.list(search_payload)
             .then(list => {
                 // Purchase the first available number on the list, and return the number.
                 client.incomingPhoneNumbers.create({
@@ -127,18 +112,41 @@ router.post("/buy", (req, res) => {
                 .then(incoming_phone_number => {
                     client.incomingPhoneNumbers(incoming_phone_number.sid)
                     .update({ 
-                        accountSid: user_sid,
-                        friendlyName: user_email 
+                        accountSid: body.sid,
+                        friendlyName: body.email
                     })
-                    .then( updated_phone_number => { return res.status(200).json(updated_phone_number) })
-                    // TODO: write the phone number and its id to the database under the user's id.
-                    .catch( updated_phone_number => { return res.status(400).json(updated_phone_number) });
-                });
-            });
+                    .then( updated_phone_number => { 
+                        const newSMSNumber = new SMSNumber({
+                            user_id: validationResponse.user_id,
+                            number: updated_phone_number.phoneNumber
+                        })
+
+                        newSMSNumber.save()
+                        .then(user => {
+                            return res.status(200).json({
+                                number: user.number
+                            });
+                        })
+                        .catch(error => { 
+                            return res.status(400).json({ numberSaveError: error });
+                        })
+                    })
+                    .catch( error => { return res.status(400).json({ errorUpdatingNumber: error }) });
+                })
+                .catch(error => {
+                    return res.status(400).json({ errorCreatingNumber: error });
+                })
+            })
+            .catch(error => {
+                return res.status(400).json({ errorSearchingNumber: error });
+            })
 
         }
     })
-    .catch(error => { res.status(400).json({ message: 'Could not run session validation.' })})
+    .catch(error => { 
+        console.log("Validation error was: %o", error);
+        return res.status(400).json({ message: 'Could not run session validation.' })
+    })
 
 });
 
