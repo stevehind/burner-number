@@ -1,14 +1,10 @@
 const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
 
-const ContactSchema = new Schema({
+const SMSNumberSchema = new Schema({
     user_id: {
         type: String,
         required: true
-    },
-    display_name: {
-        type: String,
-        required: false
     },
     number: {
         type: String,
@@ -20,4 +16,6 @@ const ContactSchema = new Schema({
     }
 });
 
-module.exports = User = mongoose.model("contacts", ContactSchema);
+const SMSNumber = mongoose.model("sms_number", SMSNumberSchema);
+
+module.exports = SMSNumber;

@@ -1,16 +1,12 @@
 const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
 
-const NumberSchema = new Schema({
-    id: {
-        type: String,
-        required: true
-    },
+const NumberAccountSchema = new Schema({
     user_id: {
         type: String,
         required: true
     },
-    number: {
+    number_account_sid: {
         type: String,
         required: true
     },
@@ -20,4 +16,6 @@ const NumberSchema = new Schema({
     }
 });
 
-module.exports = User = mongoose.model("numbers", NumberSchema);
+const NumberAccount = mongoose.model("number_accounts", NumberAccountSchema);
+
+module.exports = NumberAccount;

@@ -4,10 +4,7 @@
 const express = require("express");
 const router = express.Router();
 
-// const MessagingResponse = require("twilio").twiml.MessagingResponse;
-// const listAllMessages = require("../../functions/messages");
-// const sendMessage = require("../../functions/send");
-const validateSession = require('../../functions/sessions').validateSession;
+const validateSession = require('../../utils/sessions').validateSession;
 
 const admin_keys = require('../../config/keys').adminAPIkey;
 const keys = require("../../config/keys");
@@ -99,55 +96,48 @@ router.post("/buy", (req, res) => {
             // TODO: Consider adding back the ability to specify the area code of the number.
             let search_payload: numberSearchPayload = {
                 smsEnabled: true,
-            }
-
-            client.availablePhoneNumbers('US').local.list(search_payload)
+            }            
+            return client.availablePhoneNumbers('US').local.list(search_payload)
+            .catch(error => { return res.status(400).json({ errorSearchingNumber: error }) })
             .then(list => {
                 // Purchase the first available number on the list, and return the number.
-                client.incomingPhoneNumbers.create({
+                return client.incomingPhoneNumbers.create({
                     phoneNumber: list[0].phoneNumber,
                     // Change this when in production.
                     smsUrl: "https://fbe30584.ngrok.io/api/numbers/receive"
                 })
-                .then(incoming_phone_number => {
-                    client.incomingPhoneNumbers(incoming_phone_number.sid)
-                    .update({ 
-                        accountSid: body.sid,
-                        friendlyName: body.email
-                    })
-                    .then( updated_phone_number => { 
-                        const newSMSNumber = new SMSNumber({
-                            user_id: validationResponse.user_id,
-                            number: updated_phone_number.phoneNumber
-                        })
-
-                        newSMSNumber.save()
-                        .then(user => {
-                            return res.status(200).json({
-                                number: user.number
-                            });
-                        })
-                        .catch(error => { 
-                            return res.status(400).json({ numberSaveError: error });
-                        })
-                    })
-                    .catch( error => { return res.status(400).json({ errorUpdatingNumber: error }) });
-                })
-                .catch(error => {
-                    return res.status(400).json({ errorCreatingNumber: error });
+            })
+            .catch(error => { return res.status(400).json({ errorCreatingNumber: error }) })
+            .then(incoming_phone_number => {
+                return client.incomingPhoneNumbers(incoming_phone_number.sid)
+                .update({ 
+                    accountSid: body.sid,
+                    friendlyName: body.email
                 })
             })
-            .catch(error => {
-                return res.status(400).json({ errorSearchingNumber: error });
-            })
+            .catch(error => { return res.status(400).json({ errorUpdatingNumber: error }) })
+            .then( updated_phone_number => { 
+                console.log("Updated number is: %o", updated_phone_number);
 
+                const newSMSNumber = new SMSNumber({
+                    user_id: validationResponse.user_id,
+                    number: updated_phone_number.phoneNumber
+                })
+
+                return newSMSNumber.save() 
+            })
+            .catch(error => { return res.status(400).json({ numberSaveError: error }) })
+            .then(user => {
+                return res.status(200).json({
+                    number: user.number
+                });
+            })
         }
     })
     .catch(error => { 
         console.log("Validation error was: %o", error);
         return res.status(400).json({ message: 'Could not run session validation.' })
     })
-
 });
 
 // @route POST api/numbers/delete
