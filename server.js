@@ -7,6 +7,8 @@ const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
 
 const users = require('./routes/api/users');
+const numbers = require('./routes/api/numbers');
+const messages = require('./routes/api/messages');
 
 const app = express();
 
@@ -35,6 +37,8 @@ mongoose
 
 // Routes
 app.use("/api/users", users);
+app.use("/api/numbers", numbers);
+app.use("/api/messages", messages);
 
 // Basic setup  
 const port = process.env.PORT || 5000; // process.env.port is Heroku's port if you choose to deploy the app there

@@ -9,9 +9,9 @@ const crypto = require('crypto');
 const router = express.Router();
 
 const admin_keys = require('../../config/keys').adminAPIkey;
-const createSession = require('../../functions/sessions').createSession
+const createSession = require('../../utils/sessions').createSession
 
-const validateEmail = require('../../functions/validateEmail');
+const validateEmail = require('../../utils/validateEmail');
 
 // Load user model
 const User = require("../../models/User");
