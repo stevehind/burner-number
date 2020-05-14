@@ -58,7 +58,8 @@ router.post("/create-account", (req, res) => {
             .then(account => {
                 const newNumberAccount = new NumberAccount({
                     user_id: validationResponse.user_id,
-                    number_account_sid: account.sid
+                    number_account_sid: account.sid,
+                    number_account_auth_token: account.authToken
                 });
     
                 newNumberAccount.save()

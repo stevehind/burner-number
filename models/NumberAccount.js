@@ -10,6 +10,10 @@ const NumberAccountSchema = new Schema({
         type: String,
         required: true
     },
+    number_account_auth_token: {
+        type: String,
+        required: true
+    },
     created: {
         type: Date,
         default: Date.now
