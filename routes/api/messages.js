@@ -1,4 +1,5 @@
 // @flow
+// $FlowFixMe
 const express = require("express");
 const router = express.Router();
 
@@ -24,7 +25,22 @@ type numberAccountEntry = {
     user_id: string,
     number_account_sid: string,
     number_account_auth_token: string,
-    created: date
+    created: Date
+}
+
+type twilioSendPayload = {
+    to_number: string,
+    from_number: string,
+    sid: string,
+    message: string
+}
+
+type numberAccount = {
+    user_id: string,
+    number_account_sid: string,
+    number_account_auth_token: string,
+    sms_numbers: Array<string>,
+    created: Date
 }
 
 //Debugging
@@ -44,9 +60,9 @@ router.post("/send", (req, res) => {
     const session_token: string = req.headers.authentication;
 
     
-    const lookupNumberAccount = (user_id) => new Promise((resolve, reject) => {
+    const lookupNumberAccount: Function = (user_id: string) => new Promise((resolve: numberAccount, reject: Error) => {
         NumberAccount.findOne({ user_id: user_id })
-        .then(result => {
+        .then((result: numberAccount) => {
             if (!result) {
                 reject(new Error("Lookup number account failed"));
             } else {
@@ -56,14 +72,14 @@ router.post("/send", (req, res) => {
         .catch(error => reject(error))
     });
     
-    const sendMessage = ({ to_number, from_number, sid, auth_token, message} ) => new Promise((resolve, reject) => {
+    const sendMessage: Function = ({ to_number, from_number, sid, message}: twilioSendPayload ) => new Promise((resolve: any, reject: Error) => {
         // $FlowFixMe
-        const subClient = require("twilio")(sid, auth_token)
+        const client = require("twilio")(keys.twilioAccountSid, keys.twilioAuthToken, { accountSid: sid});
 
-        subClient.messages.create({
+        client.messages.create({
             from: from_number,
-            to: body.to_number,
-            body: body.message
+            to: to_number,
+            body: message
         })
         .then(message => {
             resolve(message);   
@@ -73,26 +89,23 @@ router.post("/send", (req, res) => {
         })
     });
 
-    const renderSuccess = (twilioObject) => {
-        return res.status(200).json({ message: twilioObject })
+    const renderSuccess: any = (twilioObject: Object) => {
+        return res.status(200).json({ message: `Message is ${twilioObject.status}`});
     };
-
 
     validateSession(session_token)
     .then((validationResponse) => Promise.all([validationResponse.user_id, returnOrCreateContact({user_id: validationResponse.user_id, number: body.to_number})]))
     .then(([user_id, _contact]) => lookupNumberAccount(user_id))
-    .then(({from_number, sid, auth_token})=> sendMessage({ 
+    .then((numberAccount)=> sendMessage({ 
         to_number: body.to_number,
-        from_number: from_number,
-        sid: sid,
-        auth_token: auth_token,
+        from_number: numberAccount.sms_numbers[0],
+        sid: numberAccount.number_account_sid,
         message: body.message
      }))
      // Save the message to the database
     .then((twilio_code) => renderSuccess(twilio_code))
     .catch((error) => { 
-        console.log("Error is: %o", error);
-        return res.status(400).json({ error4 : error }); 
+        return res.status(400).json({ error : error }); 
     });
 });
 
