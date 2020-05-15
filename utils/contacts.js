@@ -2,14 +2,15 @@
 
 const Contact = require("../models/Contact");
 
-type createContactResult = {
+type contactResult = {
     created: boolean,
-    message?: string
+    number: string,
+    user_id: string,
 }
 
-type checkContactPayload = {
-    number: string,
-    user_id: string
+type contactFailure = {
+    created: boolean,
+    message: string
 }
 
 type createContactPayload = {
@@ -18,39 +19,43 @@ type createContactPayload = {
     number: string
 }
 
-const contactExists = ({number, user_id}: checkContactPayload): Promise<boolean> => {
-    
-    return Contact.findOne({number, user_id})
-    .then(result => { return true })
-    .catch(error => { return false })
-}
+const foo = (args) => {};
 
-const createContact = (data: createContactPayload ): Promise<createContactResult> => {
+((bargs) => foo(bargs)) == foo
 
-    const newContact = new Contact({
-        user_id: data.user_id,
-        display_name: data.display_name || null,
-        number: data.number
-    })
-
-    return newContact.save()
-    .then(result => {
-        return {
-            created: true,
-            message: "Contact created."
-        }
-    })
+const returnOrCreateContact = ({number, user_id, display_name}: createContactPayload): Promise<contactResult> | Promise<contactFailure> => new Promise((resolve, reject) => {
+    Contact.findOne({number, user_id})
+    .then(contact => resolve({
+        created: false,
+        number: contact.number,
+        user_id: contact.user_id
+    }))
     .catch(error => {
-        return {
-            created: false,
-            message: "Could not create contact."
-        }
+        return new Contact({
+            user_id: user_id,
+            display_name: display_name || null,
+            number: number
+        })
+        .save()
+        .then(result => {
+            resolve({
+                created: true,
+                number: result.number,
+                user_id: result.user_id
+            })
+        })
+        .catch(error => {
+            reject({
+                created: false,
+                message: "Could not create not contact." 
+            })
+        })
     })
-}
+});
+
 
 const contacts = {
-    checkExists: contactExists,
-    createContact: createContact
+    returnOrCreateContact: returnOrCreateContact
 }
 
 module.exports = contacts;

@@ -3,6 +3,7 @@ const express = require("express");
 const router = express.Router();
 
 const validateSession = require('../../utils/sessions').validateSession;
+const returnOrCreateContact = require('../../utils/contacts').returnOrCreateContact;
 
 // $FlowFixMe
 const MessagingResponse = require("twilio").twiml.MessagingResponse;
@@ -26,6 +27,12 @@ type numberAccountEntry = {
     created: date
 }
 
+//Debugging
+process.on('unhandledRejection', (reason, p) => {
+    console.log('Unhandled Rejection at: Promise', p, 'reason:', reason);
+    console.error(reason.stack);
+});
+
 router.post("/send", (req, res) => {
 
     // validate the session header
@@ -36,43 +43,57 @@ router.post("/send", (req, res) => {
     const body: messageSendPayload = req.body;
     const session_token: string = req.headers.authentication;
 
-    // validate session token, return user id
-    return validateSession(session_token)
-    .then(validationResponse => {
-        if (validationResponse.isValid) {
-            let user_credentials: numberAccountEntry = NumberAccount.findOne({ user_id: validationResponse.user_id });
-
-            console.log("user_credentials: %o", user_credentials);
-
-            return res.status(200).json({ message: user_credentials })
-        } else {
-            return res.status(403).json({ invalidSessionError: "Could not validate session, please login." })
-        }
-    })
-    .catch(error => { return res.status(403).json({ sessionValidationFailedError: error })});    
-
-    // shadow create a contact if one doesn't exist
     
+    const lookupNumberAccount = (user_id) => new Promise((resolve, reject) => {
+        NumberAccount.findOne({ user_id: user_id })
+        .then(result => {
+            if (!result) {
+                reject(new Error("Lookup number account failed"));
+            } else {
+                resolve(result);
+            }
+        })
+        .catch(error => reject(error))
+    });
+    
+    const sendMessage = ({ to_number, from_number, sid, auth_token, message} ) => new Promise((resolve, reject) => {
+        // $FlowFixMe
+        const subClient = require("twilio")(sid, auth_token)
+
+        subClient.messages.create({
+            from: from_number,
+            to: body.to_number,
+            body: body.message
+        })
+        .then(message => {
+            resolve(message);   
+        })
+        .catch(error => {
+            reject(error);
+        })
+    });
+
+    const renderSuccess = (twilioObject) => {
+        return res.status(200).json({ message: twilioObject })
+    };
 
 
-    // find a way to retrieve the sub-account's auth token.
-
-    // TODO: Create a type of this module. https://flow.org/en/docs/libdefs/creation/
-    // $FlowFixMe
-    // const subClient = require("twilio")(body.subSid, body.subtoken)
-
-    // return subClient.messages.create({
-    //     from: body.from_number,
-    //     to: body.to_number,
-    //     body: body.message
-    // })
-    // .then(message => {
-    //     return res.status(200).json({message: message});
-    // })
-    // .catch(error => {
-    //     return res.status(400).json({error: error});
-    // })
-
+    validateSession(session_token)
+    .then((validationResponse) => Promise.all([validationResponse.user_id, returnOrCreateContact({user_id: validationResponse.user_id, number: body.to_number})]))
+    .then(([user_id, _contact]) => lookupNumberAccount(user_id))
+    .then(({from_number, sid, auth_token})=> sendMessage({ 
+        to_number: body.to_number,
+        from_number: from_number,
+        sid: sid,
+        auth_token: auth_token,
+        message: body.message
+     }))
+     // Save the message to the database
+    .then((twilio_code) => renderSuccess(twilio_code))
+    .catch((error) => { 
+        console.log("Error is: %o", error);
+        return res.status(400).json({ error4 : error }); 
+    });
 });
 
 module.exports = router;
