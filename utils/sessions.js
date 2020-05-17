@@ -26,15 +26,12 @@ const validateSession = (session_id: string): Promise<sessionValidationResponse>
     return Session.findOne({ _id: session_id })
     // TODO: Should check the expiry date is < today, as well as that there's a session at all.
     .then(session => {
-        console.log("Session is: %o", session);
         if (session) {
             let response = {
                 isValid: true,
                 user_id: session.user_id
             }
-
-            console.log(response);
-
+            
             return response;
         } else {
             return {

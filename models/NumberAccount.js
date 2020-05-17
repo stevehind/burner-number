@@ -14,6 +14,10 @@ const NumberAccountSchema = new Schema({
         type: String,
         required: true
     },
+    sms_numbers: {
+        type: [String],
+        required: false
+    },
     created: {
         type: Date,
         default: Date.now
@@ -23,3 +27,5 @@ const NumberAccountSchema = new Schema({
 const NumberAccount = mongoose.model("number_accounts", NumberAccountSchema);
 
 module.exports = NumberAccount;
+
+// https://mongoosejs.com/docs/subdocs.html
