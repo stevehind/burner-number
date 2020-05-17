@@ -55,6 +55,22 @@ type userIdAndNumber = {
     number: string,
 }
 
+type message = {
+    succeeded: boolean,
+    _id: string,
+    user_id: string,
+    twilio_message_id: string,
+    user_sent: boolean,
+    user_received: boolean,
+    to_number: string,
+    from_number: string,
+    message_text: string,
+    created: Date,
+    __v: 0
+}
+
+type messageList = Array<message>
+
 
 //Debugging
 process.on('unhandledRejection', (reason, p) => {
@@ -194,7 +210,7 @@ router.get("/list", (req, res) => {
     // get the auth token
     const session_token: string = req.headers.authentication;
 
-    const retrieveNumberFromUserId: Promise<?smsNumber> = (user_id: string) => new Promise((resolve, reject) => {
+    const retrieveNumberFromUserId = (user_id: string) => new Promise((resolve, reject) => {
         SMSNumber.findOne({ user_id: user_id })
         .then(sms_number => resolve({
             number: sms_number.number,
@@ -203,7 +219,7 @@ router.get("/list", (req, res) => {
         .catch(error => reject(error));
     });
 
-    const lookupMessages: Promise<any> = ({ user_id, number }: smsNumber) => new Promise((resolve, reject) => {
+    const lookupMessages = ({ user_id, number }: userIdAndNumber) => new Promise((resolve, reject) => {
         const query = { user_id: user_id, $or:[ { to_number: number }, { from_number: number } ] }
         
         Message.find(query)
@@ -212,13 +228,9 @@ router.get("/list", (req, res) => {
 
     });
 
-    const formatAndReturnMessages: Array<any> = (messages_list: Array<any>) => new Promise((resolve, reject) => {
-        
-        messages_list
-        .then(resolve(res.status(200).json({ messages: messages_list })))
-        .catch(error => res.status(400).error({ error: error }));
-        
-    });
+    const formatAndReturnMessages = (messages_list: messageList) => {
+        return res.status(200).json({ messages: messages_list });
+    };
 
     validateSession(session_token)
     .then(validationResponse => retrieveNumberFromUserId(validationResponse.user_id))
