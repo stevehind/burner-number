@@ -171,8 +171,8 @@ router.post("/receive", (req, res) => {
 
     // Use functions in a chain of promises
     retrieveUserIdFromNumber(to_number)
-    .then(user_id => saveReceivedMessage({ user_id, to_number, from_number, message_sid, message_text }))
-    .then(user_id => returnOrCreateContact({ user_id: user_id, number: from_number }))
+    .then(user_id => Promise.all([user_id, saveReceivedMessage({ user_id, to_number, from_number, message_sid, message_text })]))
+    .then(([user_id, response]) => returnOrCreateContact({ user_id: user_id, number: from_number }))
     .catch(error => { res.status(400).json({ error2: error }) })
     .then(contact => {
         twiml.message(message_text);
