@@ -50,6 +50,11 @@ type messageSavePayload = {
     from_number: string
 }
 
+type userIdAndNumber = {
+    user_id: string,
+    number: string,
+}
+
 
 //Debugging
 process.on('unhandledRejection', (reason, p) => {
@@ -181,6 +186,45 @@ router.post("/receive", (req, res) => {
         res.end(twiml.toString());
     })
     .catch(error => { res.status(400).json({ error3: error }) });
+
+});
+
+router.get("/list", (req, res) => {
+
+    // get the auth token
+    const session_token: string = req.headers.authentication;
+
+    const retrieveNumberFromUserId: Promise<?smsNumber> = (user_id: string) => new Promise((resolve, reject) => {
+        SMSNumber.findOne({ user_id: user_id })
+        .then(sms_number => resolve({
+            number: sms_number.number,
+            user_id: sms_number.user_id
+        }))
+        .catch(error => reject(error));
+    });
+
+    const lookupMessages: Promise<any> = ({ user_id, number }: smsNumber) => new Promise((resolve, reject) => {
+        const query = { user_id: user_id, $or:[ { to_number: number }, { from_number: number } ] }
+        
+        Message.find(query)
+        .then(messages_list => resolve(messages_list))
+        .catch(error => reject(error));
+
+    });
+
+    const formatAndReturnMessages: Array<any> = (messages_list: Array<any>) => new Promise((resolve, reject) => {
+        
+        messages_list
+        .then(resolve(res.status(200).json({ messages: messages_list })))
+        .catch(error => res.status(400).error({ error: error }));
+        
+    });
+
+    validateSession(session_token)
+    .then(validationResponse => retrieveNumberFromUserId(validationResponse.user_id))
+    .then((sms_number) => lookupMessages(sms_number))
+    .then((messages) => formatAndReturnMessages(messages))
+    .catch(error => res.status(400).json({ error: error }))
 
 });
 
