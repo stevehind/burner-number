@@ -35,6 +35,10 @@ mongoose
 .then(() => console.log("MongoDB successfully connected"))
 .catch(err => console.log(err));
 
+app.get("/", (req, res) => {
+  return res.status(200).json({ message: "The server is running." })
+});
+
 // Routes
 app.use("/api/users", users);
 app.use("/api/numbers", numbers);
