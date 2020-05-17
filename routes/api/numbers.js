@@ -125,6 +125,8 @@ router.post("/buy", (req, res) => {
                     number: updated_phone_number.phoneNumber
                 })
 
+                // TODO: save the new SMSnumber to the NumberAccount model
+
                 return newSMSNumber.save() 
             })
             .catch(error => { return res.status(400).json({ numberSaveError: error }) })
