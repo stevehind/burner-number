@@ -3,29 +3,26 @@
 const express = require("express");
 const router = express.Router();
 
+// Import utils
 const validateSession = require('../../utils/sessions').validateSession;
 const returnOrCreateContact = require('../../utils/contacts').returnOrCreateContact;
 
+// Import credentials
+const keys = require("../../config/keys");
+
 // $FlowFixMe
 const MessagingResponse = require("twilio").twiml.MessagingResponse;
-
-const keys = require("../../config/keys");
 // $FlowFixMe
 const client = require("twilio")(keys.twilioAccountSid, keys.twilioAuthToken);
 
+// Database models
 const NumberAccount = require("../../models/NumberAccount");
+const Message = require("../../models/Message");
 
+// Types
 type messageSendPayload = {
     to_number: string,
     message: string
-}
-
-type numberAccountEntry = {
-    _id: string,
-    user_id: string,
-    number_account_sid: string,
-    number_account_auth_token: string,
-    created: Date
 }
 
 type twilioSendPayload = {
@@ -36,6 +33,7 @@ type twilioSendPayload = {
 }
 
 type numberAccount = {
+    _id: string,
     user_id: string,
     number_account_sid: string,
     number_account_auth_token: string,
@@ -60,7 +58,7 @@ router.post("/send", (req, res) => {
     const session_token: string = req.headers.authentication;
 
     
-    const lookupNumberAccount: Function = (user_id: string) => new Promise((resolve: numberAccount, reject: Error) => {
+    const lookupNumberAccount: Function = (user_id: string) => new Promise((resolve, reject) => {
         NumberAccount.findOne({ user_id: user_id })
         .then((result: numberAccount) => {
             if (!result) {
@@ -69,10 +67,10 @@ router.post("/send", (req, res) => {
                 resolve(result);
             }
         })
-        .catch(error => reject(error))
+        .catch((error: Error) => reject(error))
     });
     
-    const sendMessage: Function = ({ to_number, from_number, sid, message}: twilioSendPayload ) => new Promise((resolve: any, reject: Error) => {
+    const sendMessage: Function = ({ to_number, from_number, sid, message}: twilioSendPayload ) => new Promise((resolve, reject) => {
         // $FlowFixMe
         const client = require("twilio")(keys.twilioAccountSid, keys.twilioAuthToken, { accountSid: sid});
 
@@ -89,21 +87,40 @@ router.post("/send", (req, res) => {
         })
     });
 
-    const renderSuccess: any = (twilioObject: Object) => {
-        return res.status(200).json({ message: `Message is ${twilioObject.status}`});
+    const saveMessage: Function = (user_id: string, twilioObject: Object) => new Promise((resolve, reject) => {
+        const newMessage = new Message({
+            user_id: user_id,
+            twilio_message_id: twilioObject.sid,
+            user_sent: true,
+            user_received: false,
+            succeeded: true,
+            to_number: twilioObject.to,
+            from_number: twilioObject.from,
+            message_text: twilioObject.body
+        });
+
+        newMessage.save()
+        .then(resolve("Message saved."))
+        .catch(reject("Message not saved."))
+
+    });
+
+    const renderSuccess: any = (saveResponse: string) => {
+        return res.status(200).json({ message: saveResponse });
     };
 
+    // Now execute the functions as a series of promises
     validateSession(session_token)
     .then((validationResponse) => Promise.all([validationResponse.user_id, returnOrCreateContact({user_id: validationResponse.user_id, number: body.to_number})]))
     .then(([user_id, _contact]) => lookupNumberAccount(user_id))
-    .then((numberAccount)=> sendMessage({ 
+    .then((numberAccount) => Promise.all([numberAccount.user_id, sendMessage({
         to_number: body.to_number,
         from_number: numberAccount.sms_numbers[0],
         sid: numberAccount.number_account_sid,
         message: body.message
-     }))
-     // Save the message to the database
-    .then((twilio_code) => renderSuccess(twilio_code))
+    })]))
+    .then(([user_id, twilioObject]) => saveMessage(user_id, twilioObject))
+    .then((saveResult) => renderSuccess(saveResult))
     .catch((error) => { 
         return res.status(400).json({ error : error }); 
     });
