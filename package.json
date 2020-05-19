@@ -4,10 +4,10 @@
   "description": "An app to send and receive SMS.",
   "main": "server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
     "start": "nodemon --exec babel-node server.js",
     "server": "nodemon --exec babel-node server.js",
-    "flow": "flow"
+    "flow": "flow",
+    "test": "jest"
   },
   "repository": {
     "type": "git",
@@ -20,6 +20,7 @@
   },
   "homepage": "https://github.com/stevehind/burner-number#readme",
   "dependencies": {
+    "@shelf/jest-mongodb": "^1.1.5",
     "bcryptjs": "^2.4.3",
     "crypto": "^1.0.1",
     "express": "^4.17.1",
@@ -34,6 +35,7 @@
     "@babel/preset-flow": "^7.9.0",
     "flow-bin": "^0.124.0",
     "flow-typed": "^3.1.0",
+    "jest": "^26.0.1",
     "nodemon": "^2.0.3",
     "typescript": "^3.8.3"
   }

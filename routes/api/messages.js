@@ -229,6 +229,7 @@ router.get("/list", (req, res) => {
     });
 
     const formatAndReturnMessages = (messages_list: messageList) => {
+        // TODO: Format these messages to suit, e.g., how the client handles them
         return res.status(200).json({ messages: messages_list });
     };
 

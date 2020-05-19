@@ -41,7 +41,7 @@ app.get("/", (req, res) => {
 
 // Routes
 app.use("/api/users", users);
-app.use("/api/numbers", numbers);
+app.use("/api/numbers", numbers.router);
 app.use("/api/messages", messages);
 
 // Basic setup  
