@@ -38,7 +38,8 @@ type numberSearchPayload = {
 // @route POST api/numbers/create-account
 // @desc Provision a Twilio sub-account for the user
 // @access Public
-router.post("/create-account", (req, res) => {
+
+const createAccount = (req, res) => {
 
     const headers = req.headers;
     const body = req.body;
@@ -50,7 +51,13 @@ router.post("/create-account", (req, res) => {
         console.log(validationResponse);
 
         if (!validationResponse.isValid) {
-            return res.status(403).json({ message: 'Invalid session token. Please sign in.' });
+            return {
+                status: 403,
+                body: {
+                    error: 'Invalid session token. Please sign in.',
+                    message: null
+                }    
+            }
         } else {
             client.api.accounts.create({
                 friendlyName: body.email
@@ -64,19 +71,56 @@ router.post("/create-account", (req, res) => {
     
                 newNumberAccount.save()
                 .then(numberAccount => {
-                    return res.status(200).json({ message: 'Successfully created number account.' });
+                    return {
+                        status: 200,
+                        body: {
+                            error: null,
+                            message: 'Successfully created number account.'
+                        }
+                        
+                    };
                 })
                 .catch(error => {
-                    console.log('Error is: %o', error);
-                    return res.status(400).json({ message: 'Could not save number account to DB.' });
+                    return {
+                        status: 400,
+                        body: {
+                            error: 'Could not save number account to DB.',
+                            message: null
+                        }
+                        
+                    }
                 });
             })
             .catch(error => {
-                return res.status(400).json({ message: 'Could not create new number account.' })
+                return {
+                    status: 400,
+                    body: {
+                        error: 'Could not create new number account.',
+                        message: null
+                    }
+                    
+                }
             });
         }
     })
-    .catch(error => { res.status(400).json({ message: 'Could not run session validation.' })})
+    .catch(error => {
+        return {
+            status: 400,
+            body: {
+                error: 'Could not run session validation.',
+                message: null
+            }
+            
+        }
+    })    
+
+}
+
+router.post("/create-account", (req, res) => {
+    return createAccount(req, res)
+    .then(result => {
+        res.status(result.status).json(result.body);
+    })
 });
 
 // @route POST api/numbers/buy
@@ -193,4 +237,9 @@ router.post("/delete-account", (req, res) => {
 
 });
 
-module.exports = router;
+const numbers = {
+    router: router,
+    createAccount: createAccount
+}
+
+module.exports = numbers;

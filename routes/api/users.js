@@ -81,7 +81,7 @@ router.post("/register", function (req, res) {
                                 // create a session and return its id
                                 return createSession(user._id)
                                 .then(session => {
-                                    let auth_header = { Authentication: session };
+                                    let auth_header = { Authentication: session._id };
                                     return res.status(200).set(auth_header).json(user);  
                                 })
                                 .catch(err => {
@@ -147,7 +147,7 @@ router.post("/login", function (req, res) {
                 // create a session and return its id
                 return createSession(user._id)
                 .then(session => {
-                    let auth_header = { Authentication: session };
+                    let auth_header = { Authentication: session._id };
                     return res.status(200).set(auth_header).json(user);  
                 })
                 .catch(err => {
