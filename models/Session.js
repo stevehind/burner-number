@@ -11,7 +11,7 @@ const SessionSchema = new Schema({
     },
     created: {
         type: Date,
-        default: Date.now
+        default: Date.now()
     },
     expires: {
         type: Date,
