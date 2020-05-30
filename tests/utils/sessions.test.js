@@ -82,7 +82,7 @@ afterEach((done) => {
 })
 
 // Tests for validateSession
-test('it validates a valid id', (done) => {
+test('validateSession validates a valid id', (done) => {
     validateSession(valid_non_expired_session._id)
     .then(result => {
         expect(result.isValid).toBe(true);
@@ -92,7 +92,7 @@ test('it validates a valid id', (done) => {
     .finally(() => done())
 });
 
-test('it invalidates a valid id that has expired', (done) => {
+test('validateSession invalidates a valid id that has expired', (done) => {
     validateSession(valid_expired_session._id)
     .then(result => {
         expect(result.isValid).toBe(false);
@@ -102,7 +102,7 @@ test('it invalidates a valid id that has expired', (done) => {
     .finally(() => done());
 });
 
-test('it invalidates a non-existent session token', (done) => {
+test('validateSession invalidates a non-existent session token', (done) => {
     validateSession('nonsense session id')
     .then(result => {
         expect(result.isValid).toBe(false);
@@ -113,5 +113,16 @@ test('it invalidates a non-existent session token', (done) => {
 
 // Tests for createSession
 // Break up and be granular.
-let first_test = 'it takes a user_id, creates a session and writes to the database, returning a session_id'
-let next_test = 'the user_id is random string, it fails to create new session'
+
+// inputs
+let a_test = 'it takes a random string and fails to create the session.'
+let b_test = 'it takes a user_id Object and creates the session.'
+let c_test = 'it takes a user_id String and fails to create the session.'
+
+test('createSession takes a random string and fails to create the session', (done) => {
+    createSession('foo bar')
+    .then(result => {
+        expect(result).toBeInstanceOf(Session);
+    })
+    .finally(() => done());
+})
