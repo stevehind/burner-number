@@ -52,7 +52,6 @@ beforeAll((done) => {
         }
     )
     .then(() => {
-        console.log("MongoDB successfully connected");
         done();
     })
     .catch(err => console.log(err));
@@ -128,7 +127,6 @@ test ('returnOrCreateContact does not create a contact when given a payload matc
 test ('returnOrCreateContact returns and error message when the user_id passed is invalid.', (done) => {
     returnOrCreateContact(invalid_user_id_contact_payload)
     .then(result => {
-        console.log("The result was: %o", result);
         const expected = {
             created: false,
             message: "Invalid user_id."

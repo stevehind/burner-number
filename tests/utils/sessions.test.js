@@ -33,7 +33,6 @@ beforeAll((done) => {
         }
     )
     .then(() => {
-        console.log("MongoDB successfully connected");
         done();
     })
     .catch(err => console.log(err));
