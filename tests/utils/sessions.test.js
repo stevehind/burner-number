@@ -1,4 +1,5 @@
 const validateSession = require('../../utils/sessions').validateSession;
+const createSession = require('../../utils/sessions').createSession;
 
 const mongoose = require('mongoose');
 
@@ -44,11 +45,11 @@ afterAll(() => {
 
 beforeEach((done) => {
     valid_non_expired_session = new Session({
-        user_id: 'foo bar' //TODO: add a real user_id
+        user_id: '5eb75d46d0a0f2cf088f546f'
     })
     
     valid_expired_session = new Session({
-        user_id: 'foo bar',
+        user_id: '5eb75d46d0a0f2cf088f546f',
         created: two_days_ago,
         expires: one_day_ago
     })
@@ -76,7 +77,6 @@ beforeEach((done) => {
 afterEach((done) => {
     return Session.remove({})
     .then(result => {
-        console.log("Database cleared.");
         done();
     });
 })
@@ -86,7 +86,7 @@ test('validateSession validates a valid id', (done) => {
     validateSession(valid_non_expired_session._id)
     .then(result => {
         expect(result.isValid).toBe(true);
-        expect(result.user_id).toBe('foo bar');
+        expect(result.user_id).toBe('5eb75d46d0a0f2cf088f546f');
         done();
     })
     .finally(() => done())
@@ -119,10 +119,36 @@ let a_test = 'it takes a random string and fails to create the session.'
 let b_test = 'it takes a user_id Object and creates the session.'
 let c_test = 'it takes a user_id String and fails to create the session.'
 
-test('createSession takes a random string and fails to create the session', (done) => {
-    createSession('foo bar')
+test('createSession takes a user_id String and creates the session', (done) => {
+    createSession('5eb75d46d0a0f2cf088f546f')
     .then(result => {
         expect(result).toBeInstanceOf(Session);
+    })
+    .finally(() => done());
+})
+
+test('createSession takes a user_id Object and creates the session', (done) => {
+    createSession(valid_non_expired_session.user_id)
+    .then(result => {
+        expect(result).toBeInstanceOf(Session);
+    })
+    .finally(() => done());
+})
+
+test('createSession rejects an invalid user_id', (done) => {
+    createSession('foo bar')
+    .then(result => {
+        expect(result).toBe('Invalid user_id.');
+    })
+    .finally(() => done());
+})
+
+test('createSession returns an expiry date approx 30 days from now', (done) => {
+    createSession(valid_non_expired_session.user_id)
+    .then(result => {
+        let expiry_interval = result.expires - result.created;
+        let approx_thirty_days_in_secs_nano = 30 * 24 * 60 * 60 * 1000
+        expect(expiry_interval).toBeCloseTo(approx_thirty_days_in_secs_nano, -1);
     })
     .finally(() => done());
 })

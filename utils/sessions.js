@@ -10,13 +10,10 @@ mongoose.isObjectId = function(id) {
 //Helper to validate a string as object ID
 mongoose.isValidObjectIdOrStringInSameFormat = function(str) {
     if (mongoose.isObjectId(str)) {
-        console.log("Id was an Id")
         return true
     } else if (typeof str !== 'string') {
-        console.log("Id was not a string")
         return false
     } else {
-        console.log("Id was a string")
         return str.match(/^[a-f\d]{24}$/i);
     }
 };
@@ -29,18 +26,22 @@ type sessionValidationResponse = {
 const Session = require("../models/Session");
 
 const createSession = (validatedUserId: string) => {
-    const newSession = new Session({
-        user_id: validatedUserId
-    });
-
-    return newSession.save()
-    .then(session => {
-        return session;
-    })
-    .catch(err => {
-        console.log(err);
-        return 'Failed to create new session.'
-    });
+    if (mongoose.isValidObjectIdOrStringInSameFormat(validatedUserId)) {
+        const newSession = new Session({
+            user_id: validatedUserId
+        });
+    
+        return newSession.save()
+        .then(session => {
+            return session;
+        })
+        .catch(err => {
+            console.log(err);
+            return 'Failed to create new session.'
+        });
+    } else {
+        return Promise.resolve('Invalid user_id.')
+    }
 }
 
 const validateSession = (session_id: string): Promise<sessionValidationResponse> => {
