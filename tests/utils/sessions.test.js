@@ -6,7 +6,6 @@ const mongoose = require('mongoose');
 // DB Config
 const db = require('../../config/keys').mongoURI_dev;
 
-// Connect to MongoDB
 const Session = require("../../models/Session");
 
 const date = new Date();
@@ -24,6 +23,7 @@ let invalid_session
 let db_entries
 
 beforeAll((done) => {
+    // Connect to MongoDB
     return mongoose
     .connect(
         db,
