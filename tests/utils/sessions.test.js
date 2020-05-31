@@ -1,9 +1,8 @@
 const validateSession = require('../../utils/sessions').validateSession;
 const createSession = require('../../utils/sessions').createSession;
 
-const mongoose = require('mongoose');
-
 // DB Config
+const mongoose = require('mongoose');
 const db = require('../../config/keys').mongoURI_dev;
 
 const Session = require("../../models/Session");

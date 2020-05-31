@@ -1,4 +1,5 @@
 // @flow
+// $FlowFixMe
 const mongoose = require('mongoose');
 const {Types: {ObjectId}} = mongoose;
 
@@ -37,7 +38,7 @@ type createContactPayload = {
     number: string
 }
 
-const returnOrCreateContact = ({number, user_id, display_name}: createContactPayload): Promise<contactResult> | Promise<contactFailure> => new Promise((resolve, reject) => {
+const returnOrCreateContact = ({number, user_id, display_name}: createContactPayload) => new Promise((resolve: Promise<contactResult>, reject: Promise<contactFailure>) => {
     if (mongoose.isValidObjectIdOrStringInSameFormat(user_id)) {
         return Contact.findOne({number, user_id})
         .then(contact => resolve({

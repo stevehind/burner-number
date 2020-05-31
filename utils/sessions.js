@@ -1,4 +1,5 @@
 // @flow
+// $FlowFixMe
 const mongoose = require('mongoose');
 const {Types: {ObjectId}} = mongoose;
 
