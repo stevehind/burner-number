@@ -1,11 +1,10 @@
 const validateSession = require('../../utils/sessions').validateSession;
-
-const mongoose = require('mongoose');
+const createSession = require('../../utils/sessions').createSession;
 
 // DB Config
+const mongoose = require('mongoose');
 const db = require('../../config/keys').mongoURI_dev;
 
-// Connect to MongoDB
 const Session = require("../../models/Session");
 
 const date = new Date();
@@ -23,6 +22,7 @@ let invalid_session
 let db_entries
 
 beforeAll((done) => {
+    // Connect to MongoDB
     return mongoose
     .connect(
         db,
@@ -32,7 +32,6 @@ beforeAll((done) => {
         }
     )
     .then(() => {
-        console.log("MongoDB successfully connected");
         done();
     })
     .catch(err => console.log(err));
@@ -44,11 +43,11 @@ afterAll(() => {
 
 beforeEach((done) => {
     valid_non_expired_session = new Session({
-        user_id: 'foo bar' //TODO: add a real user_id
+        user_id: '5eb75d46d0a0f2cf088f546f'
     })
     
     valid_expired_session = new Session({
-        user_id: 'foo bar',
+        user_id: '5eb75d46d0a0f2cf088f546f',
         created: two_days_ago,
         expires: one_day_ago
     })
@@ -76,23 +75,22 @@ beforeEach((done) => {
 afterEach((done) => {
     return Session.remove({})
     .then(result => {
-        console.log("Database cleared.");
         done();
     });
 })
 
 // Tests for validateSession
-test('it validates a valid id', (done) => {
+test('validateSession validates a valid id', (done) => {
     validateSession(valid_non_expired_session._id)
     .then(result => {
         expect(result.isValid).toBe(true);
-        expect(result.user_id).toBe('foo bar');
+        expect(result.user_id).toBe('5eb75d46d0a0f2cf088f546f');
         done();
     })
     .finally(() => done())
 });
 
-test('it invalidates a valid id that has expired', (done) => {
+test('validateSession invalidates a valid id that has expired', (done) => {
     validateSession(valid_expired_session._id)
     .then(result => {
         expect(result.isValid).toBe(false);
@@ -102,7 +100,7 @@ test('it invalidates a valid id that has expired', (done) => {
     .finally(() => done());
 });
 
-test('it invalidates a non-existent session token', (done) => {
+test('validateSession invalidates a non-existent session token', (done) => {
     validateSession('nonsense session id')
     .then(result => {
         expect(result.isValid).toBe(false);
@@ -113,5 +111,42 @@ test('it invalidates a non-existent session token', (done) => {
 
 // Tests for createSession
 // Break up and be granular.
-let first_test = 'it takes a user_id, creates a session and writes to the database, returning a session_id'
-let next_test = 'the user_id is random string, it fails to create new session'
+
+// inputs
+let a_test = 'it takes a random string and fails to create the session.'
+let b_test = 'it takes a user_id Object and creates the session.'
+let c_test = 'it takes a user_id String and fails to create the session.'
+
+test('createSession takes a user_id String and creates the session', (done) => {
+    createSession('5eb75d46d0a0f2cf088f546f')
+    .then(result => {
+        expect(result).toBeInstanceOf(Session);
+    })
+    .finally(() => done());
+})
+
+test('createSession takes a user_id Object and creates the session', (done) => {
+    createSession(valid_non_expired_session.user_id)
+    .then(result => {
+        expect(result).toBeInstanceOf(Session);
+    })
+    .finally(() => done());
+})
+
+test('createSession rejects an invalid user_id', (done) => {
+    createSession('foo bar')
+    .then(result => {
+        expect(result).toBe('Invalid user_id.');
+    })
+    .finally(() => done());
+})
+
+test('createSession returns an expiry date approx 30 days from now', (done) => {
+    createSession(valid_non_expired_session.user_id)
+    .then(result => {
+        let expiry_interval = result.expires - result.created;
+        let approx_thirty_days_in_secs_nano = 30 * 24 * 60 * 60 * 1000
+        expect(expiry_interval).toBeCloseTo(approx_thirty_days_in_secs_nano, -1);
+    })
+    .finally(() => done());
+})

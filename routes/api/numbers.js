@@ -4,8 +4,11 @@
 const express = require("express");
 const router = express.Router();
 
+// Handlers and util functions
+const createAccount = require('../../handlers/numbers').createAccount;
 const validateSession = require('../../utils/sessions').validateSession;
 
+// Credentials
 const admin_keys = require('../../config/keys').adminAPIkey;
 const keys = require("../../config/keys");
 // $FlowFixMe
@@ -26,6 +29,7 @@ type accountDeleteResult = {
     status: string
 };
 type accountDeleteResultArray = Array<?accountDeleteResult>;
+
 type buyNumberPayload = {
     email: string,
     sid: string
@@ -34,92 +38,45 @@ type numberSearchPayload = {
     smsEnabled: boolean
 }
 
+type createAccountPayload = {
+    email: string,
+    user_id: string
+}
+
+type createAccountResponse = {
+    status: 200 | 400,
+    body: {
+        error: string | null,
+        message: string | null
+    }
+}
 
 // @route POST api/numbers/create-account
-// @desc Provision a Twilio sub-account for the user
+// @desc Validate session, then create a Twilio sub-account
 // @access Public
-
-const createAccount = (req, res) => {
+router.post("/create-account", (req, res) => {
 
     const headers = req.headers;
     const body = req.body;
 
-    // Validate the session token sent.
-
     return validateSession(headers.authentication)
-    .then( validationResponse => {
-        console.log(validationResponse);
-
-        if (!validationResponse.isValid) {
-            return {
-                status: 403,
-                body: {
-                    error: 'Invalid session token. Please sign in.',
-                    message: null
-                }    
+    .then(validationResponse => {
+        if (validationResponse.isValid) {
+            const createAccountPayload: createAccountPayload = {
+                email: body.email,
+                user_id: validationResponse.user_id
             }
+
+            return createAccount(createAccountPayload, res)
+            .then((result: createAccountResponse) => {
+                res.status(result.status).json(result.body);
+            })
         } else {
-            client.api.accounts.create({
-                friendlyName: body.email
-            })
-            .then(account => {
-                const newNumberAccount = new NumberAccount({
-                    user_id: validationResponse.user_id,
-                    number_account_sid: account.sid,
-                    number_account_auth_token: account.authToken
-                });
-    
-                newNumberAccount.save()
-                .then(numberAccount => {
-                    return {
-                        status: 200,
-                        body: {
-                            error: null,
-                            message: 'Successfully created number account.'
-                        }
-                        
-                    };
-                })
-                .catch(error => {
-                    return {
-                        status: 400,
-                        body: {
-                            error: 'Could not save number account to DB.',
-                            message: null
-                        }
-                        
-                    }
-                });
-            })
-            .catch(error => {
-                return {
-                    status: 400,
-                    body: {
-                        error: 'Could not create new number account.',
-                        message: null
-                    }
-                    
-                }
-            });
-        }
-    })
-    .catch(error => {
-        return {
-            status: 400,
-            body: {
-                error: 'Could not run session validation.',
+            return res.status(403).json({
+                error: 'Invalid session token. Please sign in.',
                 message: null
-            }
-            
+            })
         }
-    })    
-
-}
-
-router.post("/create-account", (req, res) => {
-    return createAccount(req, res)
-    .then(result => {
-        res.status(result.status).json(result.body);
     })
 });
 
@@ -238,8 +195,7 @@ router.post("/delete-account", (req, res) => {
 });
 
 const numbers = {
-    router: router,
-    createAccount: createAccount
+    router: router
 }
 
 module.exports = numbers;
