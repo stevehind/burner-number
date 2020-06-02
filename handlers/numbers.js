@@ -4,15 +4,14 @@ const validateSession = require('../utils/sessions').validateSession;
 
 // Load database models
 // $FlowFixMe
-const NumberAccount = require("../../models/NumberAccount");
+const NumberAccount = require("../models/NumberAccount");
+
+// Load twilio functions
+const twilio_functions = require("../vendor/twilio_functions");
 
 // Credentials
 // $FlowFixMe
-const admin_keys = require('../../config/keys').adminAPIkey;
-// $FlowFixMe
-const keys = require("../../config/keys");
-// $FlowFixMe
-const client = require("twilio")(keys.twilioAccountSid, keys.twilioAuthToken);
+const admin_keys = require('../config/keys').adminAPIkey;
 
 // Types
 type createAccountPayload = {
@@ -32,19 +31,29 @@ type createAccountResponse = {
 const createAccount = (body: createAccountPayload, res: createAccountResponse): Promise<createAccountResponse> => {
 
     return NumberAccount.findOne({ user_id: body.user_id})
-    .then(([result, body]) => {
-        if (result.error) {
-            return {
+    .then((result, error) => {
+
+        console.log('findOne result was: %o', result);
+        console.log('findOne error was: %o', error);
+
+        if ((!error) && (!result)) {
+            return twilio_functions.createTwilioSubAccount(body.email);  
+        } else if (result) {
+            throw {
                 status: 400,
                 body: {
                     error: 'user_id already has an account.',
                     message: null
                 }
-            }    
+            }  
         } else {
-            throw client.api.accounts.create({
-                friendlyName: body.email
-            })
+            throw {
+                status: 400,
+                body: {
+                    error: 'Db error.',
+                    message: null
+                }
+            }
         }
     })
     .then(account => {
@@ -65,13 +74,18 @@ const createAccount = (body: createAccountPayload, res: createAccountResponse): 
         };
     })
     .catch(error => {
-        return {
-            status: 400,
-            body: {
-                error: null,
-                message: 'Could not create number account.'
-            }
-        };
+        if ((error.body) && (error.body.error === 'user_id already has an account.')) {
+            return error;
+        } else {
+            console.log(error);
+            return {
+                status: 400,
+                body: {
+                    error: 'Could not create number account.',
+                    message: null
+                }
+            };
+        }
     });
 }
 
