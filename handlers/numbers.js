@@ -1,6 +1,7 @@
 // @flow
 // Load util functions
 const validateSession = require('../utils/sessions').validateSession;
+const validateEmail = require('../utils/validateEmail');
 
 // Load database models
 // $FlowFixMe
@@ -28,14 +29,23 @@ type createAccountResponse = {
 }
 
 // Create a Twilio sub-account, and store it in the database
-const createAccount = (body: createAccountPayload, res: createAccountResponse): Promise<createAccountResponse> => {
+const createAccount = (body: createAccountPayload): Promise<createAccountResponse> => {
+
+    const {error, isValid} = validateEmail(body.email);
+    if (error || !isValid) {
+        return Promise.resolve(
+            {
+                status: 400,
+                body: {
+                    error: 'Invalid email.',
+                    message: null
+                }
+            }
+        );
+    }
 
     return NumberAccount.findOne({ user_id: body.user_id})
     .then((result, error) => {
-
-        console.log('findOne result was: %o', result);
-        console.log('findOne error was: %o', error);
-
         if ((!error) && (!result)) {
             return twilio_functions.createTwilioSubAccount(body.email);  
         } else if (result) {
@@ -50,7 +60,7 @@ const createAccount = (body: createAccountPayload, res: createAccountResponse): 
             throw {
                 status: 400,
                 body: {
-                    error: 'Db error.',
+                    error: 'DB error.',
                     message: null
                 }
             }
