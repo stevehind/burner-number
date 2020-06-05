@@ -28,6 +28,22 @@ type createAccountResponse = {
     }
 }
 
+type accountSidsArray = Array<string>;
+
+type accountDeleteResult = {
+    id: string,
+    name: string,
+    status: string
+};
+
+type accountDeleteResultArray = Array<?accountDeleteResult>;
+
+type deleteAccountReturn = {
+    deleted_successful: boolean,
+    delete_result: AccountDeleteResult,
+    error: string
+}
+
 // Create a Twilio sub-account, and store it in the database
 const createAccount = (body: createAccountPayload): Promise<createAccountResponse> => {
 
@@ -99,8 +115,46 @@ const createAccount = (body: createAccountPayload): Promise<createAccountRespons
     });
 }
 
+const deleteAccount = (payload: accountSidsArray) => {
+    // Do the deleting...
+    const sids: accountSidsArray = payload;
+
+    console.log("Sids array: %o", sids);
+
+    let result:accountDeleteResultArray = [];
+
+    async function deleteAccount(sid: string): Promise<deleteAccountReturn> {
+        return twilio_functions.deleteTwilioSubAccount(sid);
+    }
+
+    Promise.all(sids.map(sid => deleteAccount(sid)))
+    .then((result_array) => {
+        // array.some
+        const successful_delete = (element) => !!element.delete_result
+
+        if(result_array.some(successful_delete)) {
+            return {
+                status: 200,
+                //TODO: look up sytax for filter.
+                array_of_deleted_accounts: result_array.map(result => {
+                    result.delete_result
+                }),
+                message: 'At least one account was deleted.'
+            }
+        } else {
+            return {
+                status: 400,
+                array_of_deleted_accounts: null,
+                message: 'No accounts were deleted.'
+            }
+        }
+    })
+    
+}
+
 const numbers = {
-    createAccount: createAccount
+    createAccount: createAccount,
+    deleteAccount: deleteAccount,
 }
 
 module.exports = numbers;
