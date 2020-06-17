@@ -4,8 +4,10 @@
 const express = require("express");
 const router = express.Router();
 
-// Handlers and util functions
-const createAccount = require('../../handlers/numbers').createAccount;
+// Handlers 
+const numbersHandler = require('../../handlers/numbers')
+
+// Util functions
 const validateSession = require('../../utils/sessions').validateSession;
 
 // Credentials
@@ -20,14 +22,17 @@ const SMSNumber = require("../../models/SMSNumber")
 
 // Define types
 type accountSidsArray = Array<string>;
+
 type deletePayload = {
     account_sids: accountSidsArray
 };
+
 type accountDeleteResult = {
     id: string,
     name: string,
     status: string
 };
+
 type accountDeleteResultArray = Array<?accountDeleteResult>;
 
 type buyNumberPayload = {
@@ -67,7 +72,7 @@ router.post("/create-account", (req, res) => {
                 user_id: validationResponse.user_id
             }
 
-            return createAccount(createAccountPayload, res)
+            return numbersHandler.createAccount(createAccountPayload, res)
             .then((result: createAccountResponse) => {
                 res.status(result.status).json(result.body);
             })
@@ -153,41 +158,18 @@ router.post("/delete-account", (req, res) => {
     const auth_header: string = req.headers.authentication;
     let validAdminKeys: boolean = (auth_header === admin_keys);
 
+    const account_sids: accountSidsArray = req.body.account_sids.split(",");
+
     if (validAdminKeys) {
-        // Do the deleting...
-        const body: deletePayload = req.body;
-        const sids: accountSidsArray = req.body.account_sids.split(",");
-
-        console.log("Sids array: %o", sids);
-
-        let result:accountDeleteResultArray = [];
-
-        async function deleteAccount(sid: string): Promise<accountDeleteResult | string> {
-            return client.api.accounts(sid)
-            .update({ status: 'closed' })
-            .then(account => {
-                console.log("Account is: %o", account.sid);
-                let result: accountDeleteResult = {
-                            id: account.sid,
-                            name: account.friendlyName,
-                            status: account.status
-                        };
-
-                console.log("Result is: %o", result);
-
-                return result
-            })
-            .catch(error => {
-                console.log("Error is: %o", error.message)
-                return error.message
-            });
-        }
-
-        sids.forEach(sid => {
-            deleteAccount(sid);
-        });
-
-        return res.status(200).json({ message: 'See console for outcome.' });
+        return numbersHandler.deleteAccount(account_sids)
+        .then(result => {
+            console.log('Deleted accounts: %o', result.array_of_deleted_accounts)
+            return res.status(result.status).json({ message: result.message });
+        })
+        .catch(error => {
+            return res.status(error.status).json({ message: error.message })
+        })
+        
     } else {
         return res.status(403).json({ message: 'Invalid API keys.'});
     }

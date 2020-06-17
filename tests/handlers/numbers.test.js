@@ -40,10 +40,12 @@ let db_entries;
 let valid_non_expired_session;
 let existing_number_account;
 
+const USER_ID_FOR_DB = '5eb75d46d0a0f2cf088f546f'
+
 // Before and after each test - create and remove sessions
 beforeEach((done) => {
     existing_number_account = new NumberAccount({
-        user_id: '5eb75d46d0a0f2cf088f546f',
+        user_id: USER_ID_FOR_DB,
         number_account_sid: 'foo bar',
         number_account_auth_token: 'bar foo'
     })
@@ -70,7 +72,6 @@ afterEach((done) => {
 })
 
 let descriptions = [
-    'createAccount returns 400 when there is no email provided in request body',
     'createAccount returns 400 when the email in the request doesn`t pass email validation',
 ]
 
@@ -79,12 +80,17 @@ let valid_payload = {
     user_id: '1fb75d46d0a0f2cf088f546f'
 }
 
-let invalid_payload = {
+let invalid_payload_existing_user_id = {
     email: 'valid@email.com',
-    user_id: '5fb75d46d0a0f2cf088f546f'
+    user_id: USER_ID_FOR_DB
 }
 
-test ('crateAccount saves a new NumberAccount database object when given valid token and email address', (done) => {
+let invalid_payload_invalid_email = {
+    email: 'invalid',
+    user_id: '1fb75d46d0a0f2cf088f546f'
+}
+
+test ('createAccount saves a new NumberAccount database object when given valid token and email address', (done) => {
     twilio_functions.createTwilioSubAccount.mockResolvedValue({
         sid: 'foo bar',
         authToken: 'bar foo'
@@ -105,13 +111,55 @@ test ('createAccount does not create a new NumberAccount when one already exists
         authToken: 'bar foo'
     });
 
-    createAccount(invalid_payload)
+    createAccount(invalid_payload_existing_user_id)
     .then(result => {
         expect(result.status).toBe(400);
         expect(result.body.error).toBe('user_id already has an account.');
         expect(result.body.message).toBe(null);
     })
     .finally(() => done());
+})
+
+test('createAccount returns 400 when the email in the request doesn`t pass email validation', (done) => {
+    twilio_functions.createTwilioSubAccount.mockResolvedValue({
+        sid: 'foo bar',
+        authToken: 'bar foo'
+    });
+
+    createAccount(invalid_payload_invalid_email)
+    .then(result => {
+        expect(result.status).toBe(400);
+        expect(result.body.error).toBe('Invalid email.');
+        expect(result.body.message).toBe(null);
+    })
+    .finally(() => done());
+})
+
+test('createAccount returns 400 and a DB error when the DB returns an error', done => {
+    const originalImplementation = NumberAccount.findOne;
+    NumberAccount.findOne = jest.fn().mockImplementation((_params) => {
+        return {
+            then: (cb => {
+                try {
+                    return Promise.resolve(cb(null, {error: true}));
+                } catch(e) {
+                    return Promise.reject(e);
+                }
+            })
+        }
+    })
+    
+    // Run test
+    createAccount(valid_payload)
+    .then(result => {
+        expect(result.status).toBe(400);
+        expect(result.body.error).toBe('Could not create number account.')
+        expect(result.body.message).toBe(null)
+    })
+    .finally(() => done());
+
+    // Reset NumberAccount
+    NumberAccount.findOne = originalImplementation;
 })
 
 
