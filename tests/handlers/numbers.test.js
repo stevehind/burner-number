@@ -1,4 +1,5 @@
 const createAccount = require('../../handlers/numbers').createAccount;
+const deleteAccount = require('../../handlers/numbers').deleteAccount;
 
 // Load twilio functions
 const twilio_functions = require("../../vendor/twilio_functions");
@@ -161,5 +162,37 @@ test('createAccount returns 400 and a DB error when the DB returns an error', do
     // Reset NumberAccount
     NumberAccount.findOne = originalImplementation;
 })
+
+test('deleteAccount deletes a single account', done => {
+    twilio_functions.deleteTwilioSubAccount.mockResolvedValue({
+      deleted_successful: true,
+      delete_result: {
+        id: 'foo bar',
+        name: 'bar foo',
+        status: 'closed'
+      },
+      error: null  
+    })
+
+    let target_object = [
+        {
+            id: 'foo bar',
+            name: 'bar foo',
+            status: 'closed'
+        }
+    ]
+
+    deleteAccount(['foo bar'])
+    .then(result => {
+        expect(result.status).toBe(200),
+        expect(result.array_of_deleted_accounts).toMatchObject(target_object)
+        expect(result.message).toBe('At least one account was deleted.')
+    })
+    .finally(() => done());
+}) 
+
+let test_to_write = 'deleteAccount deletes an array of multiple accounts.'
+
+let another_test_to_write = 'deleteAccount does not delete an account that doesn`t exist'
 
 
