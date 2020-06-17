@@ -103,7 +103,6 @@ const createAccount = (body: createAccountPayload): Promise<createAccountRespons
         if ((error.body) && (error.body.error === 'user_id already has an account.')) {
             return error;
         } else {
-            console.log(error);
             return {
                 status: 400,
                 body: {

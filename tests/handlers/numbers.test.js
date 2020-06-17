@@ -65,7 +65,7 @@ beforeEach((done) => {
 })
 
 afterEach((done) => {
-    return NumberAccount.remove({})
+    return NumberAccount.deleteMany({})
     .then(result => {
         done();
     });

@@ -79,7 +79,7 @@ beforeEach((done) => {
 })
 
 afterEach((done) => {
-    return Contact.remove({})
+    return Contact.deleteMany({})
     .then(result => {
         done();
     });

@@ -73,7 +73,7 @@ beforeEach((done) => {
 })
 
 afterEach((done) => {
-    return Session.remove({})
+    return Session.deleteMany({})
     .then(result => {
         done();
     });
@@ -146,7 +146,7 @@ test('createSession returns an expiry date approx 30 days from now', (done) => {
     .then(result => {
         let expiry_interval = result.expires - result.created;
         let approx_thirty_days_in_secs_nano = 30 * 24 * 60 * 60 * 1000
-        expect(expiry_interval).toBeCloseTo(approx_thirty_days_in_secs_nano, -1);
+        expect(expiry_interval).toBeCloseTo(approx_thirty_days_in_secs_nano, -2);
     })
     .finally(() => done());
 })
