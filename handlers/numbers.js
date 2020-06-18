@@ -1,17 +1,19 @@
 // @flow
+// Import Regenerator Runtime
+// $FlowFixMe
+const regeneratorRuntime = require('regenerator-runtime');
+
 // Load util functions
 const validateSession = require('../utils/sessions').validateSession;
 const validateEmail = require('../utils/validateEmail');
 
 // Load database models
-// $FlowFixMe
 const NumberAccount = require("../models/NumberAccount");
 
 // Load twilio functions
 const twilio_functions = require("../vendor/twilio_functions");
 
 // Credentials
-// $FlowFixMe
 const admin_keys = require('../config/keys').adminAPIkey;
 
 // Types
@@ -40,7 +42,7 @@ type accountDeleteResultArray = Array<?accountDeleteResult>;
 
 type deleteAccountReturn = {
     deleted_successful: boolean,
-    delete_result: AccountDeleteResult,
+    delete_result: accountDeleteResult,
     error: string
 }
 
@@ -103,7 +105,6 @@ const createAccount = (body: createAccountPayload): Promise<createAccountRespons
         if ((error.body) && (error.body.error === 'user_id already has an account.')) {
             return error;
         } else {
-            console.log(error);
             return {
                 status: 400,
                 body: {
@@ -119,28 +120,26 @@ const deleteAccount = (payload: accountSidsArray) => {
     // Do the deleting...
     const sids: accountSidsArray = payload;
 
-    console.log("Sids array: %o", sids);
-
     let result:accountDeleteResultArray = [];
 
     async function deleteAccount(sid: string): Promise<deleteAccountReturn> {
         return twilio_functions.deleteTwilioSubAccount(sid);
     }
 
-    Promise.all(sids.map(sid => deleteAccount(sid)))
+    return Promise.all(sids.map(sid => deleteAccount(sid)))
     .then((result_array) => {
-        // array.some
         const successful_delete = (element) => !!element.delete_result
 
         if(result_array.some(successful_delete)) {
-            return {
+            
+            let result = {
                 status: 200,
                 //TODO: look up sytax for filter.
-                array_of_deleted_accounts: result_array.map(result => {
-                    result.delete_result
-                }),
+                array_of_deleted_accounts: result_array.map(item => item.delete_result),
                 message: 'At least one account was deleted.'
-            }
+            };
+
+            return result;
         } else {
             return {
                 status: 400,

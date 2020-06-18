@@ -25,6 +25,7 @@
     "crypto": "^1.0.1",
     "express": "^4.17.1",
     "mongoose": "^5.9.12",
+    "regenerator-runtime": "^0.13.5",
     "twilio": "^3.43.0",
     "validator": "^13.0.0"
   },
