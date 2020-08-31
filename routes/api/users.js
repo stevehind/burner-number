@@ -9,8 +9,10 @@ const crypto = require('crypto');
 const router = express.Router();
 
 const admin_keys = require('../../config/keys').adminAPIkey;
-const createSession = require('../../utils/sessions').createSession
 
+// Import utils
+const createSession = require('../../utils/sessions').createSession
+const validateSession = require('../../utils/sessions').validateSession;
 const validateEmail = require('../../utils/validateEmail');
 
 // Load user model
@@ -159,5 +161,53 @@ router.post("/login", function (req, res) {
         })    
     });
 });
+
+// @route POST /api/users/customer-portal
+// @desc Take an auth token and return a customer portal session
+// @access private
+router.post("/customer-portal", function (req, res) {
+
+    const stripe = require('stripe')('sk_test_nq9J4ndESqlNMgX9WAxdvoCb00iqCzDw4V');
+
+    const body = req.body;
+    const session_token: string = req.headers.authentication;
+
+    var session = await stripe.billingPortal.sessions.create({
+        //TODO: actual stripe customer code
+        customer: 'cus_HvuSKRxjyVCC3Y',
+        //TODO: update
+        return_url: 'https://localhost:3000/',
+      });
+
+    validateSession(session_token)
+    //get the user, and the corresponding Stripe user object
+    .then()
+    //call stripe
+    .then()
+    //return the result
+    .then()
+    .catch((error) => {
+        return res.status(400).json({ error: error });
+    });
+
+// @route POST /api/users/subscribe
+// @desc Take an auth token and return a Stripe checkout session
+// @access private
+router.post("/subscribe", function (req, res) {
+    const stripe = require('stripe')('sk_test_nq9J4ndESqlNMgX9WAxdvoCb00iqCzDw4V');
+
+    const body = req.body;
+    const session_token: string = req.headers.authentication;
+
+    // find a user by their auth token
+
+    // create a checkout session and return it to client
+
+})
+
+});
+
+// TODO: add succeess, cancel and return URLs for purchases and subscriptions
+
 
 module.exports = router;

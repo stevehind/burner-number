@@ -39,6 +39,7 @@ type buyNumberPayload = {
     email: string,
     sid: string
 }
+
 type numberSearchPayload = {
     smsEnabled: boolean
 }

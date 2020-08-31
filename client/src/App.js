@@ -1,12 +1,16 @@
 import React from 'react';
 import logo from './logo.svg';
 import './App.css';
+import ManagePaymentButton from './manage_payment.js'
 
 function App() {
   return (
     <div className="App">
       <header className="App-header">
         <img src={logo} className="App-logo" alt="logo" />
+        <div>
+          <ManagePaymentButton/>
+        </div>
         <p>
           Edit <code>src/App.js</code> and save to reload.
         </p>
