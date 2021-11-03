@@ -27,7 +27,7 @@
     "mongoose": "^5.9.12",
     "regenerator-runtime": "^0.13.5",
     "twilio": "^3.43.0",
-    "validator": "^13.0.0"
+    "validator": "^13.7.0"
   },
   "devDependencies": {
     "@babel/core": "^7.9.6",
