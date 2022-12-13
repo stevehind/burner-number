@@ -23,7 +23,7 @@
     "@shelf/jest-mongodb": "^1.1.5",
     "bcryptjs": "^2.4.3",
     "crypto": "^1.0.1",
-    "express": "^4.17.1",
+    "express": "^4.17.3",
     "mongoose": "^5.9.12",
     "regenerator-runtime": "^0.13.5",
     "twilio": "^3.43.0",
